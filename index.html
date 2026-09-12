@@ -367,6 +367,7 @@ body{
       <div class="brand-sub">채팅 뽑기 컨트롤</div>
     </div>
     <div class="topbar-right">
+      <select id="ttsVoice" class="icon-toggle" style="max-width:180px;"><option value="">TTS 목소리 불러오는 중…</option></select>
       <button id="ttsToggle" class="icon-toggle on" aria-pressed="true">🔊 TTS 켜짐</button>
       <div class="rec-indicator" id="recIndicator"><span class="rec-dot"></span><span id="recIndicatorText">모집 대기중</span></div>
     </div>
@@ -454,6 +455,7 @@ body{
   const state = {
     recruiting:false,
     ttsOn:true,
+    ttsVoiceURI:null,
     toggles:{subOnly:false, excludeDup:true},
     recruitList:[],      // {id,name,sub,sponsor}
     winnerHistory:new Set(), // names ever won (for dup-exclusion)
@@ -470,6 +472,7 @@ body{
     recIndicator: document.getElementById('recIndicator'),
     recIndicatorText: document.getElementById('recIndicatorText'),
     ttsToggle: document.getElementById('ttsToggle'),
+    ttsVoice: document.getElementById('ttsVoice'),
     toggleSub: document.getElementById('toggleSub'),
     toggleDup: document.getElementById('toggleDup'),
     maxWinners: document.getElementById('maxWinners'),
@@ -507,8 +510,45 @@ body{
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.lang = 'ko-KR';
+      if(state.ttsVoiceURI){
+        const voices = window.speechSynthesis.getVoices();
+        const chosen = voices.find(v => v.voiceURI === state.ttsVoiceURI);
+        if(chosen) u.voice = chosen;
+      }
       window.speechSynthesis.speak(u);
     }catch(e){ /* TTS unavailable, fail silently */ }
+  }
+
+  function loadVoices(){
+    if(!('speechSynthesis' in window)) return;
+    const voices = window.speechSynthesis.getVoices();
+    if(voices.length === 0) return;
+
+    const korean = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('ko'));
+    const others = voices.filter(v => !(v.lang && v.lang.toLowerCase().startsWith('ko')));
+    const ordered = [...korean, ...others];
+
+    const prevSelection = state.ttsVoiceURI;
+    el.ttsVoice.innerHTML = ordered.map(v =>
+      '<option value="' + escapeHtml(v.voiceURI) + '">' + escapeHtml(v.name) + (v.lang ? ' (' + v.lang + ')' : '') + '</option>'
+    ).join('');
+
+    // "Google 한국의" 목소리를 최우선으로 기본 선택 (크롬에서 가장 자연스러운 한국어 음성)
+    const googleKorean = ordered.find(v => v.name === 'Google 한국의')
+      || ordered.find(v => /google/i.test(v.name) && v.lang && v.lang.toLowerCase().startsWith('ko'));
+
+    if(prevSelection && ordered.some(v => v.voiceURI === prevSelection)){
+      el.ttsVoice.value = prevSelection;
+    } else if(googleKorean){
+      el.ttsVoice.value = googleKorean.voiceURI;
+      state.ttsVoiceURI = googleKorean.voiceURI;
+    } else if(korean.length > 0){
+      el.ttsVoice.value = korean[0].voiceURI;
+      state.ttsVoiceURI = korean[0].voiceURI;
+    } else if(ordered.length > 0){
+      el.ttsVoice.value = ordered[0].voiceURI;
+      state.ttsVoiceURI = ordered[0].voiceURI;
+    }
   }
 
   function escapeHtml(s){
@@ -854,6 +894,18 @@ body{
     if(!state.ttsOn && 'speechSynthesis' in window) window.speechSynthesis.cancel();
     renderTop();
   });
+
+  el.ttsVoice.addEventListener('change', () => {
+    state.ttsVoiceURI = el.ttsVoice.value || null;
+  });
+
+  if('speechSynthesis' in window){
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  } else {
+    el.ttsVoice.innerHTML = '<option value="">이 브라우저는 TTS를 지원하지 않아요</option>';
+    el.ttsVoice.disabled = true;
+  }
 
   el.recruitList.addEventListener('click', (e) => {
     const item = e.target.closest('.recruit-item');
