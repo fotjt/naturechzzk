@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHZZK 채팅 뽑기</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#14151a;
+  --bg-alt:#191b21;
+  --surface:#1e212a;
+  --surface-2:#262a35;
+  --border:#31353f;
+  --border-soft:#282c36;
+  --text:#edeff2;
+  --text-muted:#8d94a3;
+  --text-dim:#5c6270;
+  --accent:#6df2a4;
+  --accent-strong:#3fe58a;
+  --accent-dim:rgba(109,242,164,0.13);
+  --gold:#ffc857;
+  --gold-dim:rgba(255,200,87,0.14);
+  --danger:#ff6b6b;
+  --danger-dim:rgba(255,107,107,0.14);
+  --radius:10px;
+  --radius-sm:6px;
+  --font-display:'Space Grotesk',sans-serif;
+  --font-body:'PretendardVariable','Pretendard',-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-mono:'Space Mono',monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-body);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+.app{
+  max-width:1440px;
+  margin:0 auto;
+  padding:20px 24px 40px;
+}
+
+/* ---------- topbar ---------- */
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:6px 2px 20px;
+  border-bottom:1px solid var(--border-soft);
+  margin-bottom:20px;
+}
+.brand{display:flex;align-items:baseline;gap:10px;}
+.brand-mark{
+  font-family:var(--font-display);
+  font-weight:700;
+  font-size:20px;
+  letter-spacing:0.2px;
+  color:var(--text);
+}
+.brand-mark span{color:var(--accent);}
+.brand-sub{
+  font-size:13px;
+  color:var(--text-dim);
+}
+.topbar-right{display:flex;align-items:center;gap:14px;}
+.rec-indicator{
+  display:flex;align-items:center;gap:7px;
+  font-size:13px;
+  color:var(--text-muted);
+  padding:6px 12px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:var(--surface);
+}
+.rec-dot{width:7px;height:7px;border-radius:50%;background:var(--text-dim);}
+.rec-indicator.live{color:var(--accent);border-color:rgba(109,242,164,0.35);background:var(--accent-dim);}
+.rec-indicator.live .rec-dot{background:var(--accent);box-shadow:0 0 0 3px rgba(109,242,164,0.18);animation:pulse 1.6s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+.icon-toggle{
+  font-family:var(--font-body);
+  font-size:13px;
+  color:var(--text-muted);
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:6px 13px;
+  cursor:pointer;
+  transition:border-color .15s, color .15s;
+}
+.icon-toggle.on{color:var(--accent);border-color:rgba(109,242,164,0.4);}
+.icon-toggle:hover{border-color:var(--text-dim);}
+
+/* ---------- layout ---------- */
+.grid{
+  display:grid;
+  grid-template-columns:280px 1fr 340px;
+  gap:18px;
+  align-items:start;
+}
+@media (max-width:980px){
+  .grid{grid-template-columns:1fr;}
+}
+.panel{
+  background:var(--surface);
+  border:1px solid var(--border-soft);
+  border-radius:var(--radius);
+  padding:18px;
+}
+.panel h2{
+  font-family:var(--font-display);
+  font-size:14px;
+  font-weight:600;
+  margin:0 0 14px;
+  color:var(--text);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.panel h3{
+  font-size:12.5px;
+  font-weight:600;
+  color:var(--text-muted);
+  margin:0 0 10px;
+}
+.count-mono{
+  font-family:var(--font-mono);
+  font-size:13px;
+  color:var(--accent);
+  background:var(--accent-dim);
+  padding:2px 8px;
+  border-radius:999px;
+}
+
+/* ---------- control panel ---------- */
+.toggle-row{display:flex;flex-direction:column;gap:2px;margin-bottom:16px;}
+.switch-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:9px 2px;
+  border-bottom:1px solid var(--border-soft);
+}
+.switch-item:last-child{border-bottom:none;}
+.switch-label{font-size:13.5px;color:var(--text);}
+.switch-label small{display:block;font-size:11px;color:var(--text-dim);margin-top:1px;}
+.switch{
+  position:relative;width:38px;height:22px;flex:none;
+}
+.switch input{opacity:0;width:0;height:0;position:absolute;}
+.switch .track{
+  position:absolute;inset:0;background:var(--surface-2);
+  border:1px solid var(--border);border-radius:999px;
+  transition:background .15s,border-color .15s;cursor:pointer;
+}
+.switch .thumb{
+  position:absolute;top:2px;left:2px;width:16px;height:16px;
+  background:var(--text-dim);border-radius:50%;
+  transition:transform .15s,background .15s;
+}
+.switch input:checked + .track{background:var(--accent-dim);border-color:rgba(109,242,164,0.45);}
+.switch input:checked + .track .thumb{transform:translateX(16px);background:var(--accent);}
+
+.field{margin-bottom:16px;}
+.field label{
+  display:block;font-size:12px;color:var(--text-muted);margin-bottom:6px;
+}
+.field input[type="number"]{
+  width:100%;
+  font-family:var(--font-mono);
+  font-size:16px;
+  background:var(--bg-alt);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  color:var(--text);
+  padding:8px 10px;
+}
+.field input[type="number"]:focus{outline:2px solid var(--accent);outline-offset:1px;}
+
+.btn{
+  font-family:var(--font-body);
+  font-weight:600;
+  font-size:13.5px;
+  border-radius:var(--radius-sm);
+  border:1px solid transparent;
+  padding:10px 14px;
+  cursor:pointer;
+  width:100%;
+  transition:filter .12s, background .12s, border-color .12s;
+}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.btn:disabled{opacity:0.38;cursor:not-allowed;}
+.btn-primary{background:var(--accent);color:#0d1310;}
+.btn-primary:hover:not(:disabled){filter:brightness(1.08);}
+.btn-secondary{background:var(--surface-2);color:var(--text);border-color:var(--border);}
+.btn-secondary:hover:not(:disabled){border-color:var(--text-dim);}
+.btn-accent{background:var(--gold);color:#241a05;margin-top:10px;}
+.btn-accent:hover:not(:disabled){filter:brightness(1.06);}
+.btn-ghost{background:transparent;border-color:var(--border);color:var(--text-muted);}
+.btn-ghost:hover:not(:disabled){border-color:var(--text-dim);color:var(--text);}
+.btn-confirm{background:var(--accent);color:#0d1310;}
+.btn-row{display:flex;gap:8px;margin-bottom:8px;}
+.btn-row .btn{width:auto;flex:1;}
+
+.sim-box{
+  margin-top:18px;
+  padding-top:16px;
+  border-top:1px dashed var(--border);
+}
+.sim-box input[type="text"], .sim-box input:not([type]){
+  width:100%;
+  background:var(--bg-alt);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  color:var(--text);
+  font-size:13px;
+  padding:7px 9px;
+  margin-bottom:8px;
+  font-family:var(--font-body);
+}
+.sim-checks{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;}
+.sim-checks label{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted);cursor:pointer;}
+.sim-checks input{accent-color:var(--accent);}
+
+/* ---------- recruit list ---------- */
+.list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;}
+.list-header h2{margin:0;}
+#searchBox{
+  background:var(--bg-alt);
+  border:1px solid var(--border);
+  border-radius:999px;
+  color:var(--text);
+  font-size:12.5px;
+  padding:7px 13px;
+  width:160px;
+  font-family:var(--font-body);
+}
+.recruit-list{
+  list-style:none;margin:0;padding:0;
+  display:flex;flex-direction:column;gap:5px;
+  max-height:560px;overflow-y:auto;
+}
+.recruit-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 11px;
+  border-radius:var(--radius-sm);
+  background:var(--bg-alt);
+  border:1px solid transparent;
+  cursor:pointer;
+  transition:border-color .12s, opacity .12s;
+}
+.recruit-item:hover{border-color:var(--border);}
+.recruit-item.excluded{opacity:0.4;}
+.recruit-item .name-block{display:flex;align-items:center;gap:8px;min-width:0;}
+.recruit-item .name{font-size:13.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.badge{
+  font-family:var(--font-mono);
+  font-size:10px;
+  padding:2px 6px;
+  border-radius:4px;
+  flex:none;
+}
+.badge-sponsor{background:var(--gold-dim);color:var(--gold);}
+.badge-sub{background:var(--accent-dim);color:var(--accent);}
+.badge-follow{background:rgba(255,255,255,0.06);color:var(--text-dim);}
+.exclude-tag{font-size:10.5px;color:var(--text-dim);flex:none;}
+.empty-state{
+  color:var(--text-dim);
+  font-size:13px;
+  padding:24px 4px;
+  text-align:center;
+  line-height:1.6;
+}
+
+/* ---------- winner zone ---------- */
+.winner-zone{display:flex;flex-direction:column;gap:12px;}
+.winner-queue-strip{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:2px;}
+.queue-chip{
+  font-family:var(--font-mono);
+  font-size:11px;
+  padding:4px 8px;
+  border-radius:6px;
+  background:var(--surface-2);
+  color:var(--text-dim);
+  border:1px solid var(--border-soft);
+}
+.queue-chip.active{color:var(--accent);border-color:rgba(109,242,164,0.4);background:var(--accent-dim);}
+.queue-chip.done{color:var(--text-dim);text-decoration:line-through;}
+
+.winner-card{
+  background:var(--bg-alt);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:16px;
+}
+.winner-card .winner-name-row{
+  display:flex;align-items:center;gap:8px;margin-bottom:4px;
+}
+.winner-card .winner-name{
+  font-family:var(--font-display);
+  font-size:19px;
+  font-weight:600;
+}
+.winner-card .sponsor-mark{
+  display:inline-flex;align-items:center;gap:3px;
+  font-family:var(--font-mono);font-size:11px;
+  color:var(--gold);background:var(--gold-dim);
+  padding:2px 7px;border-radius:5px;
+}
+.winner-card .free-tag{
+  font-size:12px;color:var(--text-dim);
+}
+.check-mark{color:var(--accent);font-size:15px;}
+.awaiting{
+  font-size:12px;color:var(--text-dim);
+  display:flex;align-items:center;gap:6px;
+  margin:10px 0;
+}
+.awaiting .dot{width:5px;height:5px;border-radius:50%;background:var(--text-dim);animation:pulse 1.4s ease-in-out infinite;}
+.chat-line{
+  background:var(--surface-2);
+  border-radius:var(--radius-sm);
+  padding:9px 11px;
+  font-size:13px;
+  margin:10px 0;
+  color:var(--text);
+  border-left:2px solid var(--accent);
+}
+.chat-line .who{color:var(--accent);font-weight:600;margin-right:6px;}
+
+.last-winner{
+  margin-top:16px;padding-top:14px;
+  border-top:1px solid var(--border-soft);
+}
+.last-winner-row{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg-alt);
+  border-radius:var(--radius-sm);
+  padding:10px 12px;
+}
+.preview-tag{
+  font-family:var(--font-mono);font-size:10.5px;
+  color:var(--text-dim);background:var(--surface-2);
+  padding:2px 7px;border-radius:5px;margin-left:6px;
+}
+
+::-webkit-scrollbar{width:8px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+.visually-hidden{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
+}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+@media (prefers-reduced-motion:reduce){
+  .rec-indicator.live .rec-dot,.awaiting .dot{animation:none;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">CHZZK <span>RAFFLE</span></div>
+      <div class="brand-sub">채팅 뽑기 컨트롤</div>
+    </div>
+    <div class="topbar-right">
+      <button id="ttsToggle" class="icon-toggle on" aria-pressed="true">🔊 TTS 켜짐</button>
+      <div class="rec-indicator" id="recIndicator"><span class="rec-dot"></span><span id="recIndicatorText">모집 대기중</span></div>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- ============ 컨트롤 패널 ============ -->
+    <section class="panel">
+      <h2>모집 설정</h2>
+
+      <div class="toggle-row">
+        <div class="switch-item">
+          <span class="switch-label">구독자만 추첨<small>비구독자는 목록에는 뜨지만 대상 제외</small></span>
+          <span class="switch"><input type="checkbox" id="toggleSub"><span class="track" onclick="document.getElementById('toggleSub').click()"><span class="thumb"></span></span></span>
+        </div>
+        <div class="switch-item">
+          <span class="switch-label">중복 당첨자 제외<small>이전 당첨 이력이 있으면 대상 제외</small></span>
+          <span class="switch"><input type="checkbox" id="toggleDup" checked><span class="track" onclick="document.getElementById('toggleDup').click()"><span class="thumb"></span></span></span>
+        </div>
+        <div class="switch-item">
+          <span class="switch-label">오늘 팔로우 제외<small>당일 신규 팔로워는 대상 제외</small></span>
+          <span class="switch"><input type="checkbox" id="toggleFollow"><span class="track" onclick="document.getElementById('toggleFollow').click()"><span class="thumb"></span></span></span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="maxWinners">최대 당첨자 수</label>
+        <input type="number" id="maxWinners" min="1" max="20" value="1">
+      </div>
+
+      <div class="btn-row">
+        <button id="startBtn" class="btn btn-primary">모집 시작</button>
+        <button id="endBtn" class="btn btn-secondary" disabled>모집 종료</button>
+      </div>
+      <button id="drawBtn" class="btn btn-accent" disabled>🎲 추첨하기</button>
+
+      <div class="sim-box">
+        <h3>실시간 연동 (선택)</h3>
+        <input type="text" id="wsUrl" value="ws://localhost:8081" placeholder="ws://localhost:8081">
+        <div class="btn-row">
+          <button id="wsConnectBtn" class="btn btn-ghost">연결</button>
+          <button id="wsDisconnectBtn" class="btn btn-ghost" disabled>연결 해제</button>
+        </div>
+        <p id="wsStatus" style="font-size:11.5px;color:var(--text-dim);margin:0 0 4px;">치지직 채팅과 연결되어 있지 않아요. 아래 시뮬레이터로 계속 테스트할 수 있어요.</p>
+      </div>
+
+      <div class="sim-box">
+        <h3>채팅 시뮬레이터 (테스트용)</h3>
+        <input type="text" id="simName" placeholder="닉네임">
+        <div class="sim-checks">
+          <label><input type="checkbox" id="simSub"> 구독자</label>
+          <label><input type="checkbox" id="simSponsor"> 후원자</label>
+          <label><input type="checkbox" id="simFollow"> 오늘 팔로우</label>
+        </div>
+        <input type="text" id="simMsg" placeholder="채팅 메시지 (당첨자 확인 시 사용)">
+        <button id="simSendBtn" class="btn btn-ghost">채팅 전송</button>
+      </div>
+    </section>
+
+    <!-- ============ 모집자 목록 ============ -->
+    <section class="panel">
+      <div class="list-header">
+        <h2>모집자 <span class="count-mono" id="recruitCount">0</span></h2>
+        <input type="text" id="searchBox" placeholder="이름 검색">
+      </div>
+      <ul class="recruit-list" id="recruitList"></ul>
+    </section>
+
+    <!-- ============ 당첨자 처리 ============ -->
+    <section class="panel">
+      <h2>당첨자 처리</h2>
+      <div class="winner-zone" id="winnerZone">
+        <p class="empty-state">추첨을 진행하면 당첨자가 여기 표시돼요.</p>
+      </div>
+      <div class="last-winner" id="lastWinnerBox" hidden>
+        <h3>최근 당첨된 시청자</h3>
+        <div id="lastWinnerContent"></div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------------- state ----------------
+  const state = {
+    recruiting:false,
+    ttsOn:true,
+    toggles:{subOnly:false, excludeDup:true, excludeFollow:false},
+    recruitList:[],      // {id,name,sub,sponsor,followedToday}
+    winnerHistory:new Set(), // names ever won (for dup-exclusion)
+    queue:[],            // current draw round: [{id,name,sub,sponsor,followedToday,chatMsg,confirmed}]
+    queueIndex:-1,
+    lastWinner:null,
+    searchTerm:"",
+    previewId:null
+  };
+  let uid = 1;
+
+  // ---------------- elements ----------------
+  const el = {
+    recIndicator: document.getElementById('recIndicator'),
+    recIndicatorText: document.getElementById('recIndicatorText'),
+    ttsToggle: document.getElementById('ttsToggle'),
+    toggleSub: document.getElementById('toggleSub'),
+    toggleDup: document.getElementById('toggleDup'),
+    toggleFollow: document.getElementById('toggleFollow'),
+    maxWinners: document.getElementById('maxWinners'),
+    startBtn: document.getElementById('startBtn'),
+    endBtn: document.getElementById('endBtn'),
+    drawBtn: document.getElementById('drawBtn'),
+    simName: document.getElementById('simName'),
+    simSub: document.getElementById('simSub'),
+    simSponsor: document.getElementById('simSponsor'),
+    simFollow: document.getElementById('simFollow'),
+    simMsg: document.getElementById('simMsg'),
+    simSendBtn: document.getElementById('simSendBtn'),
+    wsUrl: document.getElementById('wsUrl'),
+    wsConnectBtn: document.getElementById('wsConnectBtn'),
+    wsDisconnectBtn: document.getElementById('wsDisconnectBtn'),
+    wsStatus: document.getElementById('wsStatus'),
+    recruitCount: document.getElementById('recruitCount'),
+    searchBox: document.getElementById('searchBox'),
+    recruitList: document.getElementById('recruitList'),
+    winnerZone: document.getElementById('winnerZone'),
+    lastWinnerBox: document.getElementById('lastWinnerBox'),
+    lastWinnerContent: document.getElementById('lastWinnerContent')
+  };
+
+  // ---------------- helpers ----------------
+  function isExcluded(person){
+    if(state.toggles.subOnly && !person.sub) return true;
+    if(state.toggles.excludeDup && state.winnerHistory.has(person.name)) return true;
+    if(state.toggles.excludeFollow && person.followedToday) return true;
+    return false;
+  }
+
+  function speak(text){
+    if(!state.ttsOn) return;
+    if(!('speechSynthesis' in window)) return;
+    try{
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'ko-KR';
+      window.speechSynthesis.speak(u);
+    }catch(e){ /* TTS unavailable, fail silently */ }
+  }
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ---------------- render: topbar ----------------
+  function renderTop(){
+    el.recIndicator.classList.toggle('live', state.recruiting);
+    el.recIndicatorText.textContent = state.recruiting ? '모집 중' : '모집 대기중';
+    el.ttsToggle.classList.toggle('on', state.ttsOn);
+    el.ttsToggle.textContent = state.ttsOn ? '🔊 TTS 켜짐' : '🔇 TTS 꺼짐';
+    el.ttsToggle.setAttribute('aria-pressed', String(state.ttsOn));
+  }
+
+  // ---------------- render: recruit list ----------------
+  function renderList(){
+    el.recruitCount.textContent = state.recruitList.length;
+    const term = state.searchTerm.trim().toLowerCase();
+    const items = state.recruitList.filter(p => !term || p.name.toLowerCase().includes(term));
+
+    if(items.length === 0){
+      el.recruitList.innerHTML = '<div class="empty-state">' +
+        (state.recruitList.length === 0 ? '아직 모집된 시청자가 없어요. 모집을 시작하고 채팅을 기다려보세요.' : '검색 결과가 없어요.') +
+        '</div>';
+      return;
+    }
+
+    el.recruitList.innerHTML = items.map(p => {
+      const excluded = isExcluded(p);
+      let tagReason = '';
+      if(excluded){
+        if(state.toggles.subOnly && !p.sub) tagReason = '비구독자';
+        else if(state.toggles.excludeDup && state.winnerHistory.has(p.name)) tagReason = '중복 당첨';
+        else if(state.toggles.excludeFollow && p.followedToday) tagReason = '당일 팔로우';
+      }
+      const badges = [
+        p.sponsor ? '<span class="badge badge-sponsor">후원</span>' : '',
+        p.sub ? '<span class="badge badge-sub">구독</span>' : '',
+        p.followedToday ? '<span class="badge badge-follow">오늘팔로우</span>' : ''
+      ].join('');
+      return '<li class="recruit-item' + (excluded ? ' excluded' : '') + '" data-id="' + p.id + '" tabindex="0" role="button" aria-label="' + escapeHtml(p.name) + ' 미리보기">' +
+        '<span class="name-block"><span class="name">' + escapeHtml(p.name) + '</span>' + badges + '</span>' +
+        (excluded ? '<span class="exclude-tag">' + tagReason + '</span>' : '') +
+        '</li>';
+    }).join('');
+  }
+
+  // ---------------- render: winner zone ----------------
+  function renderWinnerZone(){
+    // preview takes priority display when nothing is actively queued and a preview is selected
+    if(state.queue.length > 0 && state.queueIndex >= 0){
+      const current = state.queue[state.queueIndex];
+      const chips = state.queue.map((w,i) => {
+        let cls = 'queue-chip';
+        if(i === state.queueIndex) cls += ' active';
+        else if(i < state.queueIndex) cls += ' done';
+        return '<span class="' + cls + '">' + escapeHtml(w.name) + '</span>';
+      }).join('');
+
+      const sponsorBlock = current.sponsor
+        ? '<span class="sponsor-mark">✓ 후원 인증</span>'
+        : '<span class="free-tag">(무료눈깔)</span>';
+
+      const chatBlock = current.chatMsg
+        ? '<div class="chat-line"><span class="who">' + escapeHtml(current.name) + '</span>' + escapeHtml(current.chatMsg) + ' <span class="check-mark">✔</span></div>'
+        : '<div class="awaiting"><span class="dot"></span>당첨자의 채팅을 기다리는 중…</div>';
+
+      const isLast = state.queueIndex === state.queue.length - 1;
+      const confirmLabel = isLast ? '확인 · 이 라운드 마무리' : '확인 · 다음 시청자로';
+
+      el.winnerZone.innerHTML =
+        '<div class="winner-queue-strip">' + chips + '</div>' +
+        '<div class="winner-card">' +
+          '<div class="winner-name-row"><span class="winner-name">' + escapeHtml(current.name) + '</span>' + sponsorBlock + '</div>' +
+          chatBlock +
+          '<button class="btn btn-confirm" id="confirmBtn">' + confirmLabel + '</button>' +
+        '</div>';
+
+      const confirmBtn = document.getElementById('confirmBtn');
+      confirmBtn.addEventListener('click', onConfirmWinner);
+    } else if(state.previewId !== null){
+      const p = state.recruitList.find(x => x.id === state.previewId);
+      if(p){
+        const sponsorBlock = p.sponsor
+          ? '<span class="sponsor-mark">✓ 후원 인증</span>'
+          : '<span class="free-tag">(무료눈깔)</span>';
+        el.winnerZone.innerHTML =
+          '<div class="winner-card">' +
+            '<div class="winner-name-row"><span class="winner-name">' + escapeHtml(p.name) + '</span>' + sponsorBlock + '<span class="preview-tag">미리보기</span></div>' +
+            '<p style="font-size:12px;color:var(--text-dim);margin:8px 0 0;">실제 당첨 처리는 아니에요. 명단이나 중복 제외에 영향을 주지 않아요.</p>' +
+          '</div>';
+      } else {
+        el.winnerZone.innerHTML = '<p class="empty-state">추첨을 진행하면 당첨자가 여기 표시돼요.</p>';
+      }
+    } else {
+      el.winnerZone.innerHTML = '<p class="empty-state">추첨을 진행하면 당첨자가 여기 표시돼요.</p>';
+    }
+  }
+
+  function renderLastWinner(){
+    if(!state.lastWinner){
+      el.lastWinnerBox.hidden = true;
+      return;
+    }
+    el.lastWinnerBox.hidden = false;
+    const w = state.lastWinner;
+    const sponsorBlock = w.sponsor
+      ? '<span class="sponsor-mark">✓ 후원 인증</span>'
+      : '<span class="free-tag">(무료눈깔)</span>';
+    el.lastWinnerContent.innerHTML =
+      '<div class="last-winner-row"><span class="winner-name" style="font-size:15px;">' + escapeHtml(w.name) + '</span>' + sponsorBlock + '</div>';
+  }
+
+  function renderAll(){
+    renderTop();
+    renderList();
+    renderWinnerZone();
+    renderLastWinner();
+    el.drawBtn.disabled = !state.recruiting && state.recruitList.length === 0
+      ? true
+      : (eligiblePool().length === 0);
+    el.drawBtn.disabled = eligiblePool().length === 0;
+  }
+
+  function eligiblePool(){
+    // already-processed-or-queued names in this exact round shouldn't be re-picked
+    return state.recruitList.filter(p => !isExcluded(p));
+  }
+
+  // ---------------- actions ----------------
+  function startRecruit(){
+    state.recruiting = true;
+    state.recruitList = [];
+    state.queue = [];
+    state.queueIndex = -1;
+    state.previewId = null;
+    el.startBtn.disabled = true;
+    el.endBtn.disabled = false;
+    renderAll();
+  }
+
+  function endRecruit(){
+    state.recruiting = false;
+    el.startBtn.disabled = false;
+    el.endBtn.disabled = true;
+    renderAll();
+  }
+
+  function drawWinners(){
+    const pool = eligiblePool();
+    if(pool.length === 0) return;
+    const m = Math.max(1, Math.min(parseInt(el.maxWinners.value,10) || 1, pool.length));
+
+    // shuffle copy, take m
+    const shuffled = pool.slice();
+    for(let i = shuffled.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i+1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    const picked = shuffled.slice(0, m);
+
+    state.queue = picked.map(p => ({ id:p.id, name:p.name, sub:p.sub, sponsor:p.sponsor, followedToday:p.followedToday, chatMsg:null }));
+    state.queueIndex = 0;
+    state.previewId = null;
+    renderAll();
+  }
+
+  function onConfirmWinner(){
+    const current = state.queue[state.queueIndex];
+    if(!current) return;
+    state.winnerHistory.add(current.name);
+
+    if(state.queueIndex < state.queue.length - 1){
+      state.queueIndex += 1;
+    } else {
+      state.lastWinner = { name: current.name, sponsor: current.sponsor };
+      state.queue = [];
+      state.queueIndex = -1;
+    }
+    renderAll();
+  }
+
+  function handlePreviewClick(id){
+    if(state.queue.length > 0) return; // don't disturb an active draw round
+    state.previewId = (state.previewId === id) ? null : id;
+    renderWinnerZone();
+  }
+
+  function simulateChat(){
+    const name = el.simName.value.trim();
+    if(!name) { el.simName.focus(); return; }
+    const sub = el.simSub.checked;
+    const sponsor = el.simSponsor.checked;
+    const followedToday = el.simFollow.checked;
+    const msg = el.simMsg.value.trim();
+
+    // if this viewer is the currently active winner awaiting confirmation, treat message as their winning chat
+    if(state.queue.length > 0 && state.queueIndex >= 0){
+      const current = state.queue[state.queueIndex];
+      if(current.name === name && msg){
+        current.chatMsg = msg;
+        speak(msg);
+        renderWinnerZone();
+        el.simMsg.value = '';
+        return;
+      }
+    }
+
+    // otherwise, treat as ordinary recruiting chat
+    if(!state.recruiting) return;
+    const existing = state.recruitList.find(p => p.name === name);
+    if(existing){
+      // update flags live (in case sim toggled after first chat)
+      existing.sub = existing.sub || sub;
+      existing.sponsor = existing.sponsor || sponsor;
+      existing.followedToday = existing.followedToday || followedToday;
+    } else {
+      state.recruitList.push({ id: uid++, name, sub, sponsor, followedToday });
+    }
+    renderAll();
+    el.simName.value = '';
+    el.simMsg.value = '';
+  }
+
+  // ---------------- 실시간 연동 (백엔드 WebSocket) ----------------
+  let ws = null;
+  const subscriberIds = new Set();   // userIdHash 기준 구독자로 확인된 유저
+  const sponsorIds = new Set();      // userIdHash 기준 후원자로 확인된 유저
+
+  function findRecruit(userIdHash, name){
+    if(userIdHash){
+      const byId = state.recruitList.find(p => p.userIdHash === userIdHash);
+      if(byId) return byId;
+    }
+    return state.recruitList.find(p => p.name === name) || null;
+  }
+
+  function wsConnect(){
+    const url = el.wsUrl.value.trim();
+    if(!url) return;
+    try{
+      ws = new WebSocket(url);
+    }catch(e){
+      el.wsStatus.textContent = '주소가 올바르지 않아요.';
+      return;
+    }
+    el.wsStatus.textContent = '연결 시도 중…';
+    ws.addEventListener('open', () => {
+      el.wsStatus.textContent = '치지직 채팅과 연결됐어요. 실제 채팅이 자동으로 반영됩니다.';
+      el.wsConnectBtn.disabled = true;
+      el.wsDisconnectBtn.disabled = false;
+    });
+    ws.addEventListener('close', () => {
+      el.wsStatus.textContent = '연결이 끊겼어요. 시뮬레이터로 계속 테스트할 수 있어요.';
+      el.wsConnectBtn.disabled = false;
+      el.wsDisconnectBtn.disabled = true;
+    });
+    ws.addEventListener('error', () => {
+      el.wsStatus.textContent = '연결에 실패했어요. 백엔드 서버가 켜져 있는지, 주소가 맞는지 확인해주세요.';
+    });
+    ws.addEventListener('message', (event) => {
+      let data;
+      try{ data = JSON.parse(event.data); }catch(e){ return; }
+      handleRealtimeMessage(data);
+    });
+  }
+
+  function wsDisconnect(){
+    if(ws) ws.close();
+  }
+
+  function handleRealtimeMessage(data){
+    if(data.type === 'subscribe'){
+      if(data.userIdHash) subscriberIds.add(data.userIdHash);
+      const p = findRecruit(data.userIdHash, data.nickname);
+      if(p){ p.sub = true; renderAll(); }
+      return;
+    }
+    if(data.type === 'donation'){
+      if(data.userIdHash) sponsorIds.add(data.userIdHash);
+      const p = findRecruit(data.userIdHash, data.nickname);
+      if(p){ p.sponsor = true; renderAll(); }
+      return;
+    }
+    if(data.type === 'follow'){
+      const p = findRecruit(data.userIdHash, data.nickname);
+      if(p){ p.followedToday = !!data.followedToday; renderAll(); }
+      return;
+    }
+    if(data.type === 'chat'){
+      const name = data.nickname;
+      if(!name) return;
+
+      // 현재 확인 대기 중인 당첨자의 채팅이면 당첨 확인용 메시지로 처리
+      if(state.queue.length > 0 && state.queueIndex >= 0){
+        const current = state.queue[state.queueIndex];
+        if(current.name === name || (data.userIdHash && current.userIdHash === data.userIdHash)){
+          current.chatMsg = data.message || '';
+          speak(current.chatMsg);
+          renderWinnerZone();
+          return;
+        }
+      }
+
+      if(!state.recruiting) return;
+      const existing = findRecruit(data.userIdHash, name);
+      if(existing){
+        existing.userIdHash = existing.userIdHash || data.userIdHash;
+        if(data.sponsor || sponsorIds.has(data.userIdHash)) existing.sponsor = true;
+        if(subscriberIds.has(data.userIdHash)) existing.sub = true;
+      } else {
+        state.recruitList.push({
+          id: uid++,
+          name,
+          userIdHash: data.userIdHash || null,
+          sub: subscriberIds.has(data.userIdHash),
+          sponsor: !!data.sponsor || sponsorIds.has(data.userIdHash),
+          followedToday: false
+        });
+      }
+      renderAll();
+    }
+  }
+
+  // ---------------- events ----------------
+  el.startBtn.addEventListener('click', startRecruit);
+  el.endBtn.addEventListener('click', endRecruit);
+  el.drawBtn.addEventListener('click', drawWinners);
+  el.simSendBtn.addEventListener('click', simulateChat);
+  el.wsConnectBtn.addEventListener('click', wsConnect);
+  el.wsDisconnectBtn.addEventListener('click', wsDisconnect);
+  el.simMsg.addEventListener('keydown', e => { if(e.key === 'Enter') simulateChat(); });
+  el.simName.addEventListener('keydown', e => { if(e.key === 'Enter') simulateChat(); });
+
+  el.toggleSub.addEventListener('change', () => { state.toggles.subOnly = el.toggleSub.checked; renderAll(); });
+  el.toggleDup.addEventListener('change', () => { state.toggles.excludeDup = el.toggleDup.checked; renderAll(); });
+  el.toggleFollow.addEventListener('change', () => { state.toggles.excludeFollow = el.toggleFollow.checked; renderAll(); });
+
+  el.searchBox.addEventListener('input', () => { state.searchTerm = el.searchBox.value; renderList(); });
+
+  el.ttsToggle.addEventListener('click', () => {
+    state.ttsOn = !state.ttsOn;
+    if(!state.ttsOn && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+    renderTop();
+  });
+
+  el.recruitList.addEventListener('click', (e) => {
+    const item = e.target.closest('.recruit-item');
+    if(!item) return;
+    handlePreviewClick(parseInt(item.dataset.id,10));
+  });
+  el.recruitList.addEventListener('keydown', (e) => {
+    if(e.key !== 'Enter' && e.key !== ' ') return;
+    const item = e.target.closest('.recruit-item');
+    if(!item) return;
+    e.preventDefault();
+    handlePreviewClick(parseInt(item.dataset.id,10));
+  });
+
+  // init
+  state.toggles.excludeDup = el.toggleDup.checked;
+  renderAll();
+})();
+</script>
+</body>
+</html>
