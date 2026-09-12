@@ -50,6 +50,8 @@ body{
   display:flex;
   align-items:center;
   justify-content:space-between;
+  flex-wrap:wrap;
+  gap:12px;
   padding:6px 2px 20px;
   border-bottom:1px solid var(--border-soft);
   margin-bottom:20px;
@@ -95,6 +97,16 @@ body{
 .icon-toggle.on{color:var(--accent);border-color:rgba(109,242,164,0.4);}
 .icon-toggle:hover{border-color:var(--text-dim);}
 
+/* ---------- tab switch ---------- */
+.tab-switch{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:3px;}
+.tab-btn{
+  font-family:var(--font-body);font-weight:600;font-size:13px;
+  color:var(--text-muted);background:transparent;border:none;border-radius:999px;
+  padding:7px 16px;cursor:pointer;transition:background .15s,color .15s;
+}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{background:var(--accent);color:#0d1310;}
+
 /* ---------- layout ---------- */
 .grid{
   display:grid;
@@ -102,6 +114,7 @@ body{
   gap:18px;
   align-items:start;
 }
+.grid[hidden]{display:none;}
 @media (max-width:980px){
   .grid{grid-template-columns:1fr;}
 }
@@ -295,6 +308,46 @@ body{
   border:1px solid var(--border);
   border-radius:var(--radius);
   padding:16px;
+  position:relative;
+  overflow:visible;
+}
+.winner-card.winner-reveal{
+  animation:winner-pop 0.55s ease;
+}
+@keyframes winner-pop{
+  0%{ transform:scale(0.94); box-shadow:0 0 0 rgba(109,242,164,0); }
+  40%{ transform:scale(1.03); box-shadow:0 0 44px rgba(109,242,164,0.35); }
+  100%{ transform:scale(1); box-shadow:0 0 0 rgba(109,242,164,0); }
+}
+.confetti-piece{
+  position:absolute;
+  left:50%;
+  top:26px;
+  width:7px;height:13px;
+  border-radius:2px;
+  pointer-events:none;
+  animation:confetti-fly 1.05s ease-out forwards;
+  z-index:5;
+}
+@keyframes confetti-fly{
+  0%{ transform:translate(-50%,0) rotate(0deg); opacity:1; }
+  100%{ transform:translate(calc(-50% + var(--dx)), calc(var(--dy) + 150px)) rotate(var(--rot)); opacity:0; }
+}
+.spin-card{
+  text-align:center;
+  padding:28px 16px;
+}
+.spin-label{
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  font-size:12.5px;color:var(--text-muted);margin-bottom:10px;
+}
+.spin-label .dot{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 0.9s ease-in-out infinite;}
+.spin-name{
+  font-family:var(--font-display);
+  font-size:26px;
+  font-weight:700;
+  color:var(--text);
+  letter-spacing:0.3px;
 }
 .winner-card .winner-name-row{
   display:flex;align-items:center;gap:8px;margin-bottom:4px;
@@ -327,6 +380,12 @@ body{
   border-left:2px solid var(--accent);
 }
 .chat-line .who{color:var(--accent);font-weight:600;margin-right:6px;}
+.chat-log{
+  display:flex;flex-direction:column;gap:6px;
+  max-height:220px;overflow-y:auto;
+  margin:10px 0;
+}
+.chat-log .chat-line{margin:0;}
 
 .last-winner{
   margin-top:16px;padding-top:14px;
@@ -344,6 +403,111 @@ body{
   padding:2px 7px;border-radius:5px;margin-left:6px;
 }
 
+/* ---------- roulette ---------- */
+.roulette-view{
+  display:grid;
+  grid-template-columns:1fr 300px;
+  gap:18px;
+  align-items:start;
+}
+.roulette-view[hidden]{display:none;}
+@media (max-width:980px){
+  .roulette-view{grid-template-columns:1fr;}
+}
+.roulette-wheel-panel{text-align:center;}
+.wheel-wrap{
+  position:relative;
+  width:min(320px,90%);
+  margin:4px auto 0;
+  aspect-ratio:1/1;
+}
+.wheel-svg{width:100%;height:100%;display:block;}
+.wheel-svg text{
+  font-family:var(--font-body);
+  font-size:9px;
+  font-weight:600;
+  fill:#ffffff;
+  paint-order:stroke;
+  stroke:rgba(0,0,0,0.55);
+  stroke-width:2.2px;
+  stroke-linejoin:round;
+}
+#wheelGroup{
+  transform-origin:100px 100px;
+  transition:transform 4.2s cubic-bezier(0.12,0.67,0.18,1);
+}
+.wheel-hub{fill:var(--bg-alt);stroke:var(--border);stroke-width:2;}
+.wheel-pointer{
+  position:absolute;top:-4px;left:50%;transform:translateX(-50%);
+  width:0;height:0;
+  border-left:10px solid transparent;
+  border-right:10px solid transparent;
+  border-top:17px solid var(--gold);
+  z-index:3;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,0.35));
+}
+.spin-btn{max-width:240px;margin:18px auto 0;}
+.roulette-result{
+  min-height:22px;
+  margin-top:12px;
+  font-family:var(--font-display);
+  font-size:16px;font-weight:600;
+  color:var(--text-dim);
+  transition:color .2s;
+}
+.roulette-result.show{color:var(--accent);}
+.roulette-items{
+  margin-top:20px;padding-top:16px;
+  border-top:1px solid var(--border-soft);
+  text-align:left;
+}
+.roulette-items-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.roulette-items-header h3{margin:0;}
+.add-item-btn{width:auto;padding:6px 14px;}
+.item-rows{display:flex;flex-direction:column;gap:7px;}
+.item-row{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg-alt);
+  border:1px solid var(--border-soft);
+  border-radius:var(--radius-sm);
+  padding:7px 9px;
+}
+.item-name-input{
+  flex:1;min-width:0;
+  background:transparent;border:none;
+  color:var(--text);font-size:13px;font-family:var(--font-body);
+  padding:2px 0;
+}
+.item-name-input:focus{outline:none;border-bottom:1px solid var(--accent);}
+.item-percent-input{
+  width:52px;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:5px;
+  color:var(--text);
+  font-family:var(--font-mono);
+  font-size:12.5px;
+  padding:4px 5px;
+  text-align:right;
+}
+.item-percent-suffix{font-size:12px;color:var(--text-dim);}
+.item-remove-btn{
+  background:transparent;border:none;color:var(--text-dim);
+  cursor:pointer;font-size:14px;padding:2px 4px;line-height:1;
+  border-radius:4px;
+}
+.item-remove-btn:hover{color:var(--danger);background:var(--danger-dim);}
+.legend-list{display:flex;flex-direction:column;gap:8px;}
+.legend-row{
+  display:flex;align-items:center;gap:9px;
+  background:var(--bg-alt);
+  border-radius:var(--radius-sm);
+  padding:9px 11px;
+}
+.legend-swatch{width:12px;height:12px;border-radius:3px;flex:none;}
+.legend-name{flex:1;min-width:0;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.legend-percent{font-family:var(--font-mono);font-size:12.5px;color:var(--text-muted);}
+
 ::-webkit-scrollbar{width:8px;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
@@ -354,7 +518,9 @@ body{
 }
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 @media (prefers-reduced-motion:reduce){
-  .rec-indicator.live .rec-dot,.awaiting .dot{animation:none;}
+  .rec-indicator.live .rec-dot,.awaiting .dot,.spin-label .dot{animation:none;}
+  .winner-card.winner-reveal{animation:none;}
+  .confetti-piece{animation:none;display:none;}
 }
 </style>
 </head>
@@ -363,8 +529,12 @@ body{
 
   <div class="topbar">
     <div class="brand">
-      <div class="brand-mark">CHZZK <span>RAFFLE</span></div>
-      <div class="brand-sub">채팅 뽑기 컨트롤</div>
+      <div class="brand-mark">자연스럽죠</div>
+      <div class="brand-sub">방송 도구</div>
+    </div>
+    <div class="tab-switch" role="tablist">
+      <button class="tab-btn" id="tabRoulette" role="tab" aria-selected="false">룰렛</button>
+      <button class="tab-btn active" id="tabDraw" role="tab" aria-selected="true">시청자 추첨</button>
     </div>
     <div class="topbar-right">
       <select id="ttsVoice" class="icon-toggle" style="max-width:180px;"><option value="">TTS 목소리 불러오는 중…</option></select>
@@ -373,7 +543,7 @@ body{
     </div>
   </div>
 
-  <div class="grid">
+  <div class="grid" id="viewDraw">
 
     <!-- ============ 컨트롤 패널 ============ -->
     <section class="panel">
@@ -423,15 +593,6 @@ body{
       </div>
     </section>
 
-    <!-- ============ 모집자 목록 ============ -->
-    <section class="panel">
-      <div class="list-header">
-        <h2>모집자 <span class="count-mono" id="recruitCount">0</span></h2>
-        <input type="text" id="searchBox" placeholder="이름 검색">
-      </div>
-      <ul class="recruit-list" id="recruitList"></ul>
-    </section>
-
     <!-- ============ 당첨자 처리 ============ -->
     <section class="panel">
       <h2>당첨자 처리</h2>
@@ -444,6 +605,43 @@ body{
       </div>
     </section>
 
+    <!-- ============ 모집자 목록 ============ -->
+    <section class="panel">
+      <div class="list-header">
+        <h2>모집자 <span class="count-mono" id="recruitCount">0</span></h2>
+        <input type="text" id="searchBox" placeholder="이름 검색">
+      </div>
+      <ul class="recruit-list" id="recruitList"></ul>
+    </section>
+
+  </div>
+
+  <div class="roulette-view" id="viewRoulette" hidden>
+    <section class="panel roulette-wheel-panel">
+      <h2>룰렛</h2>
+      <div class="wheel-wrap">
+        <div class="wheel-pointer"></div>
+        <svg viewBox="0 0 200 200" class="wheel-svg">
+          <g id="wheelGroup"></g>
+          <circle class="wheel-hub" cx="100" cy="100" r="9"></circle>
+        </svg>
+      </div>
+      <button id="spinBtn" class="btn btn-accent spin-btn">🎡 룰렛 돌리기</button>
+      <div class="roulette-result" id="rouletteResult"></div>
+
+      <div class="roulette-items">
+        <div class="roulette-items-header">
+          <h3>항목</h3>
+          <button id="addItemBtn" class="btn btn-ghost add-item-btn">+ 항목 추가</button>
+        </div>
+        <div id="itemRows" class="item-rows"></div>
+      </div>
+    </section>
+
+    <section class="panel roulette-legend-panel">
+      <h2>항목 비율</h2>
+      <div id="legendList" class="legend-list"></div>
+    </section>
   </div>
 </div>
 
@@ -459,13 +657,25 @@ body{
     toggles:{subOnly:false, excludeDup:true},
     recruitList:[],      // {id,name,sub,sponsor}
     winnerHistory:new Set(), // names ever won (for dup-exclusion)
-    queue:[],            // current draw round: [{id,name,sub,sponsor,chatMsg,confirmed}]
+    queue:[],            // current draw round: [{id,name}]
     queueIndex:-1,
+    drawing:false,
     lastWinner:null,
     searchTerm:"",
     previewId:null
   };
   let uid = 1;
+
+  // ---------------- 룰렛 상태 ----------------
+  const roulette = {
+    items:[
+      { id:1, name:'예시1', percent:50 },
+      { id:2, name:'예시2', percent:50 }
+    ],
+    rotation:0,
+    spinning:false
+  };
+  let rouletteUid = 3;
 
   // ---------------- elements ----------------
   const el = {
@@ -493,7 +703,17 @@ body{
     recruitList: document.getElementById('recruitList'),
     winnerZone: document.getElementById('winnerZone'),
     lastWinnerBox: document.getElementById('lastWinnerBox'),
-    lastWinnerContent: document.getElementById('lastWinnerContent')
+    lastWinnerContent: document.getElementById('lastWinnerContent'),
+    tabDraw: document.getElementById('tabDraw'),
+    tabRoulette: document.getElementById('tabRoulette'),
+    viewDraw: document.getElementById('viewDraw'),
+    viewRoulette: document.getElementById('viewRoulette'),
+    wheelGroup: document.getElementById('wheelGroup'),
+    spinBtn: document.getElementById('spinBtn'),
+    rouletteResult: document.getElementById('rouletteResult'),
+    itemRows: document.getElementById('itemRows'),
+    addItemBtn: document.getElementById('addItemBtn'),
+    legendList: document.getElementById('legendList')
   };
 
   // ---------------- helpers ----------------
@@ -596,10 +816,33 @@ body{
   }
 
   // ---------------- render: winner zone ----------------
+  function getPerson(id){
+    return state.recruitList.find(x => x.id === id) || null;
+  }
+
+  function renderChatLog(person, name, emptyLabel){
+    if(person && person.chatLog && person.chatLog.length > 0){
+      return '<div class="chat-log">' + person.chatLog.map(m =>
+        '<div class="chat-line"><span class="who">' + escapeHtml(name) + '</span>' + escapeHtml(m) + '</div>'
+      ).join('') + '</div>';
+    }
+    return '<div class="awaiting"><span class="dot"></span>' + emptyLabel + '</div>';
+  }
+
   function renderWinnerZone(){
+    if(state.drawing){
+      const first = state.spinNames && state.spinNames.length > 0 ? state.spinNames[0] : '???';
+      el.winnerZone.innerHTML =
+        '<div class="winner-card spin-card">' +
+          '<div class="spin-label"><span class="dot"></span>추첨 중…</div>' +
+          '<div class="winner-name spin-name" id="spinName">' + escapeHtml(first) + '</div>' +
+        '</div>';
+      return;
+    }
     // preview takes priority display when nothing is actively queued and a preview is selected
     if(state.queue.length > 0 && state.queueIndex >= 0){
       const current = state.queue[state.queueIndex];
+      const person = getPerson(current.id);
       const chips = state.queue.map((w,i) => {
         let cls = 'queue-chip';
         if(i === state.queueIndex) cls += ' active';
@@ -607,13 +850,11 @@ body{
         return '<span class="' + cls + '">' + escapeHtml(w.name) + '</span>';
       }).join('');
 
-      const sponsorBlock = current.sponsor
+      const sponsorBlock = (person && person.sponsor)
         ? '<span class="sponsor-mark">✓ 후원 인증</span>'
         : '';
 
-      const chatBlock = current.chatMsg
-        ? '<div class="chat-line"><span class="who">' + escapeHtml(current.name) + '</span>' + escapeHtml(current.chatMsg) + ' <span class="check-mark">✔</span></div>'
-        : '<div class="awaiting"><span class="dot"></span>당첨자의 채팅을 기다리는 중…</div>';
+      const chatBlock = renderChatLog(person, current.name, '당첨자의 채팅을 기다리는 중…');
 
       const isLast = state.queueIndex === state.queue.length - 1;
       const confirmLabel = isLast ? '확인 · 이 라운드 마무리' : '확인 · 다음 시청자로';
@@ -634,9 +875,11 @@ body{
         const sponsorBlock = p.sponsor
           ? '<span class="sponsor-mark">✓ 후원 인증</span>'
           : '';
+        const chatBlock = renderChatLog(p, p.name, '아직 채팅이 없어요');
         el.winnerZone.innerHTML =
           '<div class="winner-card">' +
             '<div class="winner-name-row"><span class="winner-name">' + escapeHtml(p.name) + '</span>' + sponsorBlock + '<span class="preview-tag">미리보기</span></div>' +
+            chatBlock +
             '<p style="font-size:12px;color:var(--text-dim);margin:8px 0 0;">실제 당첨 처리는 아니에요. 명단이나 중복 제외에 영향을 주지 않아요.</p>' +
           '</div>';
       } else {
@@ -666,10 +909,7 @@ body{
     renderList();
     renderWinnerZone();
     renderLastWinner();
-    el.drawBtn.disabled = !state.recruiting && state.recruitList.length === 0
-      ? true
-      : (eligiblePool().length === 0);
-    el.drawBtn.disabled = eligiblePool().length === 0;
+    el.drawBtn.disabled = state.drawing || eligiblePool().length === 0;
   }
 
   function eligiblePool(){
@@ -697,6 +937,7 @@ body{
   }
 
   function drawWinners(){
+    if(state.drawing) return;
     const pool = eligiblePool();
     if(pool.length === 0) return;
     const m = Math.max(1, Math.min(parseInt(el.maxWinners.value,10) || 1, pool.length));
@@ -709,21 +950,105 @@ body{
     }
     const picked = shuffled.slice(0, m);
 
-    state.queue = picked.map(p => ({ id:p.id, name:p.name, sub:p.sub, sponsor:p.sponsor, chatMsg:null }));
-    state.queueIndex = 0;
     state.previewId = null;
+    state.drawing = true;
+    state.spinNames = pool.map(p => p.name);
     renderAll();
+
+    startSpinAnimation(state.spinNames, 1800, () => {
+      state.queue = picked.map(p => ({ id:p.id, name:p.name }));
+      state.queueIndex = 0;
+      state.drawing = false;
+      renderAll();
+      playWinSound();
+      burstConfetti();
+    });
+  }
+
+  function startSpinAnimation(names, totalDuration, onDone){
+    const nameEl = document.getElementById('spinName');
+    if(!nameEl || !names || names.length === 0){ onDone(); return; }
+    const start = performance.now();
+    function step(){
+      const el2 = document.getElementById('spinName');
+      if(!el2){ onDone(); return; } // element got removed (e.g. state changed elsewhere)
+      const elapsed = performance.now() - start;
+      if(elapsed >= totalDuration){
+        onDone();
+        return;
+      }
+      el2.textContent = names[Math.floor(Math.random() * names.length)];
+      const progress = elapsed / totalDuration;
+      const delay = 45 + Math.pow(progress, 2) * 260; // 점점 느려지며 긴장감 조성
+      setTimeout(step, delay);
+    }
+    step();
+  }
+
+  function playWinSound(){
+    try{
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if(!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const notes = [523.25, 659.25, 783.99, 1046.5]; // 도-미-솔-도(옥타브 위)
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.value = freq;
+        const t0 = ctx.currentTime + i * 0.09;
+        gain.gain.setValueAtTime(0.0001, t0);
+        gain.gain.exponentialRampToValueAtTime(0.28, t0 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.35);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(t0);
+        osc.stop(t0 + 0.4);
+      });
+    }catch(e){ /* 오디오를 지원하지 않는 환경이면 조용히 무시 */ }
+  }
+
+  function burstConfetti(){
+    const card = document.querySelector('#winnerZone .winner-card');
+    if(!card) return;
+    const colors = ['#6df2a4','#ffc857','#ff6b6b','#7fd8ff','#ffffff'];
+    const count = 26;
+    for(let i = 0; i < count; i++){
+      const p = document.createElement('span');
+      p.className = 'confetti-piece';
+      const angle = Math.random() * Math.PI * 2;
+      const distance = 55 + Math.random() * 85;
+      const dx = Math.cos(angle) * distance;
+      const dy = Math.sin(angle) * distance - 30;
+      p.style.setProperty('--dx', dx + 'px');
+      p.style.setProperty('--dy', dy + 'px');
+      p.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
+      p.style.background = colors[Math.floor(Math.random() * colors.length)];
+      card.appendChild(p);
+      setTimeout(() => p.remove(), 1100);
+    }
+    card.classList.add('winner-reveal');
+    setTimeout(() => card.classList.remove('winner-reveal'), 650);
+  }
+
+  function isInFocus(person){
+    if(!person) return false;
+    if(state.queue.length > 0 && state.queueIndex >= 0){
+      if(state.queue[state.queueIndex].id === person.id) return true;
+    }
+    if(state.previewId !== null && state.previewId === person.id) return true;
+    return false;
   }
 
   function onConfirmWinner(){
     const current = state.queue[state.queueIndex];
     if(!current) return;
     state.winnerHistory.add(current.name);
+    const person = getPerson(current.id);
 
     if(state.queueIndex < state.queue.length - 1){
       state.queueIndex += 1;
     } else {
-      state.lastWinner = { name: current.name, sponsor: current.sponsor };
+      state.lastWinner = { name: current.name, sponsor: person ? person.sponsor : false };
       state.queue = [];
       state.queueIndex = -1;
     }
@@ -731,7 +1056,7 @@ body{
   }
 
   function handlePreviewClick(id){
-    if(state.queue.length > 0) return; // don't disturb an active draw round
+    if(state.queue.length > 0 || state.drawing) return; // don't disturb an active draw round
     state.previewId = (state.previewId === id) ? null : id;
     renderWinnerZone();
   }
@@ -743,28 +1068,24 @@ body{
     const sponsor = el.simSponsor.checked;
     const msg = el.simMsg.value.trim();
 
-    // if this viewer is the currently active winner awaiting confirmation, treat message as their winning chat
-    if(state.queue.length > 0 && state.queueIndex >= 0){
-      const current = state.queue[state.queueIndex];
-      if(current.name === name && msg){
-        current.chatMsg = msg;
-        speak(msg);
-        renderWinnerZone();
-        el.simMsg.value = '';
-        return;
-      }
+    let person = state.recruitList.find(p => p.name === name);
+    if(person){
+      // update flags live (in case sim toggled after first chat)
+      person.sub = person.sub || sub;
+      person.sponsor = person.sponsor || sponsor;
+    } else if(state.recruiting){
+      person = { id: uid++, name, sub, sponsor, chatLog: [] };
+      state.recruitList.push(person);
+    } else {
+      return;
+    }
+    if(!person.chatLog) person.chatLog = [];
+
+    if(msg){
+      person.chatLog.push(msg);
+      if(isInFocus(person)) speak(msg);
     }
 
-    // otherwise, treat as ordinary recruiting chat
-    if(!state.recruiting) return;
-    const existing = state.recruitList.find(p => p.name === name);
-    if(existing){
-      // update flags live (in case sim toggled after first chat)
-      existing.sub = existing.sub || sub;
-      existing.sponsor = existing.sponsor || sponsor;
-    } else {
-      state.recruitList.push({ id: uid++, name, sub, sponsor });
-    }
     renderAll();
     el.simName.value = '';
     el.simMsg.value = '';
@@ -824,7 +1145,7 @@ body{
       if(p){
         p.sub = true;
       } else if(state.recruiting && data.nickname){
-        state.recruitList.push({ id: uid++, name: data.nickname, userIdHash: data.userIdHash || null, sub: true, sponsor: sponsorIds.has(data.userIdHash) });
+        state.recruitList.push({ id: uid++, name: data.nickname, userIdHash: data.userIdHash || null, sub: true, sponsor: sponsorIds.has(data.userIdHash), chatLog: [] });
       }
       renderAll();
       return;
@@ -835,7 +1156,7 @@ body{
       if(p){
         p.sponsor = true;
       } else if(state.recruiting && data.nickname){
-        state.recruitList.push({ id: uid++, name: data.nickname, userIdHash: data.userIdHash || null, sub: subscriberIds.has(data.userIdHash), sponsor: true });
+        state.recruitList.push({ id: uid++, name: data.nickname, userIdHash: data.userIdHash || null, sub: subscriberIds.has(data.userIdHash), sponsor: true, chatLog: [] });
       }
       renderAll();
       return;
@@ -844,34 +1165,194 @@ body{
       const name = data.nickname;
       if(!name) return;
 
-      // 현재 확인 대기 중인 당첨자의 채팅이면 당첨 확인용 메시지로 처리
-      if(state.queue.length > 0 && state.queueIndex >= 0){
-        const current = state.queue[state.queueIndex];
-        if(current.name === name || (data.userIdHash && current.userIdHash === data.userIdHash)){
-          current.chatMsg = data.message || '';
-          speak(current.chatMsg);
-          renderWinnerZone();
-          return;
-        }
-      }
-
-      if(!state.recruiting) return;
-      const existing = findRecruit(data.userIdHash, name);
-      if(existing){
-        existing.userIdHash = existing.userIdHash || data.userIdHash;
-        if(data.sponsor || sponsorIds.has(data.userIdHash)) existing.sponsor = true;
-        if(data.sub || subscriberIds.has(data.userIdHash)) existing.sub = true;
-      } else {
-        state.recruitList.push({
+      let person = findRecruit(data.userIdHash, name);
+      if(person){
+        person.userIdHash = person.userIdHash || data.userIdHash;
+        if(data.sponsor || sponsorIds.has(data.userIdHash)) person.sponsor = true;
+        if(data.sub || subscriberIds.has(data.userIdHash)) person.sub = true;
+      } else if(state.recruiting){
+        person = {
           id: uid++,
           name,
           userIdHash: data.userIdHash || null,
           sub: !!data.sub || subscriberIds.has(data.userIdHash),
-          sponsor: !!data.sponsor || sponsorIds.has(data.userIdHash)
-        });
+          sponsor: !!data.sponsor || sponsorIds.has(data.userIdHash),
+          chatLog: []
+        };
+        state.recruitList.push(person);
+      } else {
+        return;
+      }
+      if(!person.chatLog) person.chatLog = [];
+
+      if(data.message){
+        person.chatLog.push(data.message);
+        if(isInFocus(person)) speak(data.message);
       }
       renderAll();
     }
+  }
+
+  // ---------------- 룰렛 ----------------
+  function setView(view){
+    const isDraw = view === 'draw';
+    el.viewDraw.hidden = !isDraw;
+    el.viewRoulette.hidden = isDraw;
+    el.tabDraw.classList.toggle('active', isDraw);
+    el.tabRoulette.classList.toggle('active', !isDraw);
+    el.tabDraw.setAttribute('aria-selected', String(isDraw));
+    el.tabRoulette.setAttribute('aria-selected', String(!isDraw));
+  }
+
+  function rouletteColor(i){
+    const hue = (i * 137.508) % 360;
+    return 'hsl(' + hue.toFixed(1) + ',68%,54%)';
+  }
+
+  function rouletteTotal(){
+    return roulette.items.reduce((s, it) => s + Math.max(0, Number(it.percent) || 0), 0);
+  }
+
+  function polarToCartesian(cx, cy, r, angleFromTop){
+    const theta = (angleFromTop - 90) * Math.PI / 180;
+    return { x: cx + r * Math.cos(theta), y: cy + r * Math.sin(theta) };
+  }
+
+  function describeSlice(cx, cy, r, startAngle, endAngle){
+    const p1 = polarToCartesian(cx, cy, r, startAngle);
+    const p2 = polarToCartesian(cx, cy, r, endAngle);
+    const largeArc = (endAngle - startAngle) > 180 ? 1 : 0;
+    return 'M ' + cx + ' ' + cy + ' L ' + p1.x + ' ' + p1.y + ' A ' + r + ' ' + r + ' 0 ' + largeArc + ' 1 ' + p2.x + ' ' + p2.y + ' Z';
+  }
+
+  function renderWheel(){
+    const items = roulette.items;
+    if(!el.wheelGroup) return;
+    if(items.length === 0){ el.wheelGroup.innerHTML = ''; return; }
+    const total = rouletteTotal();
+    const cx = 100, cy = 100, r = 92;
+    const labelRadius = r * 0.62;
+    const charFactor = 0.62;   // 글자 하나당 대략적인 폭 비율(fontSize 대비)
+    const baseFontSize = 9;
+    const minFontSize = 5;
+    let cum = 0;
+    let paths = '';
+    let labels = '';
+    items.forEach((it, i) => {
+      const frac = total > 0 ? (Math.max(0, Number(it.percent) || 0) / total) : (1 / items.length);
+      const start = cum * 360;
+      const end = (cum + frac) * 360;
+      const sliceAngleDeg = end - start;
+      cum += frac;
+      const color = rouletteColor(i);
+      paths += '<path d="' + describeSlice(cx, cy, r, start, end) + '" fill="' + color + '" stroke="#14151a" stroke-width="1.5"></path>';
+
+      const mid = (start + end) / 2;
+      const flip = mid > 90 && mid < 270;
+
+      // 이 조각의 각도폭(호의 길이)에 맞춰 글자 크기를 계산 — 좁은 조각일수록 글자가 작아짐
+      const arcLength = labelRadius * (sliceAngleDeg * Math.PI / 180);
+      const maxTextWidth = Math.max(arcLength * 0.88, 8);
+      let name = it.name || ('항목' + (i + 1));
+      let fontSize = baseFontSize;
+      const neededWidth = name.length * charFactor * fontSize;
+      if(neededWidth > maxTextWidth){
+        fontSize = Math.max(minFontSize, maxTextWidth / (name.length * charFactor));
+      }
+      // 최소 크기로도 안 맞으면 말줄임표로 축약해서 영역 밖으로 안 나가게 함
+      const stillTooWide = name.length * charFactor * fontSize > maxTextWidth;
+      if(stillTooWide){
+        const maxChars = Math.max(1, Math.floor(maxTextWidth / (charFactor * fontSize)) - 1);
+        if(name.length > maxChars) name = name.slice(0, maxChars) + '…';
+      }
+
+      const label = escapeHtml(name);
+      // rotate 값은 -90을 보정해야 path와 같은 "맨 위=0도" 기준과 일치함
+      labels += '<text style="font-size:' + fontSize.toFixed(1) + 'px" transform="translate(' + cx + ',' + cy + ') rotate(' + (mid - 90) + ') translate(' + labelRadius + ',0) ' + (flip ? 'rotate(180)' : '') + '" text-anchor="middle" dominant-baseline="middle">' + label + '</text>';
+    });
+    // 조각(paths)을 전부 그린 다음 글자(labels)를 맨 위에 그려서, 다음 조각이 이전 글자를 덮지 않게 함
+    el.wheelGroup.innerHTML = paths + labels;
+  }
+
+  function renderLegend(){
+    const items = roulette.items;
+    const total = rouletteTotal();
+    if(items.length === 0){
+      el.legendList.innerHTML = '<p class="empty-state">항목을 추가해보세요.</p>';
+      return;
+    }
+    el.legendList.innerHTML = items.map((it, i) => {
+      const norm = total > 0 ? (Math.max(0, Number(it.percent) || 0) / total * 100) : (100 / items.length);
+      return '<div class="legend-row"><span class="legend-swatch" style="background:' + rouletteColor(i) + '"></span>' +
+        '<span class="legend-name">' + escapeHtml(it.name || ('항목' + (i + 1))) + '</span>' +
+        '<span class="legend-percent">' + norm.toFixed(1) + '%</span></div>';
+    }).join('');
+  }
+
+  function renderItemRows(){
+    el.itemRows.innerHTML = roulette.items.map((it) =>
+      '<div class="item-row">' +
+        '<input type="text" class="item-name-input" value="' + escapeHtml(it.name) + '" data-id="' + it.id + '" placeholder="항목 이름">' +
+        '<input type="number" class="item-percent-input" min="0" max="100" step="1" value="' + it.percent + '" data-id="' + it.id + '">' +
+        '<span class="item-percent-suffix">%</span>' +
+        '<button class="item-remove-btn" data-id="' + it.id + '" title="삭제">✕</button>' +
+      '</div>'
+    ).join('');
+  }
+
+  function renderRoulette(){
+    renderWheel();
+    renderLegend();
+    renderItemRows();
+  }
+
+  function spinRoulette(){
+    if(roulette.spinning) return;
+    const items = roulette.items;
+    const total = rouletteTotal();
+    if(items.length === 0 || total <= 0) return;
+
+    // 가중치에 따라 당첨 항목 뽑기
+    let r = Math.random() * total;
+    let winner = items[items.length - 1];
+    let acc = 0;
+    for(const it of items){
+      acc += Math.max(0, Number(it.percent) || 0);
+      if(r <= acc){ winner = it; break; }
+    }
+
+    // renderWheel과 동일한 계산으로 당첨 항목의 중심 각도 구하기
+    let cumFrac = 0;
+    let centerAngle = 0;
+    for(const it of items){
+      const frac = Math.max(0, Number(it.percent) || 0) / total;
+      const start = cumFrac * 360;
+      const end = (cumFrac + frac) * 360;
+      if(it.id === winner.id){ centerAngle = (start + end) / 2; break; }
+      cumFrac += frac;
+    }
+
+    const spins = 6;
+    const current = roulette.rotation || 0;
+    const currentMod = ((current % 360) + 360) % 360;
+    const needed = (360 - centerAngle) % 360;
+    const delta = ((needed - currentMod) % 360 + 360) % 360;
+    const target = current + spins * 360 + delta;
+
+    roulette.spinning = true;
+    roulette.rotation = target;
+    el.spinBtn.disabled = true;
+    el.rouletteResult.textContent = '';
+    el.rouletteResult.classList.remove('show');
+    el.wheelGroup.style.transform = 'rotate(' + target + 'deg)';
+
+    clearTimeout(roulette._resultTimer);
+    roulette._resultTimer = setTimeout(() => {
+      roulette.spinning = false;
+      el.spinBtn.disabled = false;
+      el.rouletteResult.textContent = '🎉 결과: ' + winner.name;
+      el.rouletteResult.classList.add('show');
+    }, 4300);
   }
 
   // ---------------- events ----------------
@@ -920,9 +1401,49 @@ body{
     handlePreviewClick(parseInt(item.dataset.id,10));
   });
 
+  // ---------------- 룰렛 이벤트 ----------------
+  el.tabDraw.addEventListener('click', () => setView('draw'));
+  el.tabRoulette.addEventListener('click', () => setView('roulette'));
+
+  el.spinBtn.addEventListener('click', spinRoulette);
+
+  el.addItemBtn.addEventListener('click', () => {
+    roulette.items.push({ id: rouletteUid++, name: '항목 ' + (roulette.items.length + 1), percent: 10 });
+    renderRoulette();
+  });
+
+  el.itemRows.addEventListener('input', (e) => {
+    const id = parseInt(e.target.dataset.id, 10);
+    const item = roulette.items.find(x => x.id === id);
+    if(!item) return;
+    if(e.target.classList.contains('item-name-input')){
+      item.name = e.target.value;
+      renderWheel();
+      renderLegend();
+    } else if(e.target.classList.contains('item-percent-input')){
+      let v = parseFloat(e.target.value);
+      if(isNaN(v)) v = 0;
+      v = Math.max(0, Math.min(100, v));
+      item.percent = v;
+      renderWheel();
+      renderLegend();
+    }
+  });
+
+  el.itemRows.addEventListener('click', (e) => {
+    const btn = e.target.closest('.item-remove-btn');
+    if(!btn) return;
+    if(roulette.items.length <= 1) return;
+    const id = parseInt(btn.dataset.id, 10);
+    roulette.items = roulette.items.filter(x => x.id !== id);
+    renderRoulette();
+  });
+
   // init
   state.toggles.excludeDup = el.toggleDup.checked;
   renderAll();
+  setView('draw');
+  renderRoulette();
 })();
 </script>
 </body>
