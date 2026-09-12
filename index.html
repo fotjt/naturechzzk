@@ -266,7 +266,6 @@ body{
 }
 .badge-sponsor{background:var(--gold-dim);color:var(--gold);}
 .badge-sub{background:var(--accent-dim);color:var(--accent);}
-.badge-follow{background:rgba(255,255,255,0.06);color:var(--text-dim);}
 .exclude-tag{font-size:10.5px;color:var(--text-dim);flex:none;}
 .empty-state{
   color:var(--text-dim);
@@ -310,9 +309,6 @@ body{
   font-family:var(--font-mono);font-size:11px;
   color:var(--gold);background:var(--gold-dim);
   padding:2px 7px;border-radius:5px;
-}
-.winner-card .free-tag{
-  font-size:12px;color:var(--text-dim);
 }
 .check-mark{color:var(--accent);font-size:15px;}
 .awaiting{
@@ -391,10 +387,6 @@ body{
           <span class="switch-label">중복 당첨자 제외<small>이전 당첨 이력이 있으면 대상 제외</small></span>
           <span class="switch"><input type="checkbox" id="toggleDup" checked><span class="track" onclick="document.getElementById('toggleDup').click()"><span class="thumb"></span></span></span>
         </div>
-        <div class="switch-item">
-          <span class="switch-label">오늘 팔로우 제외<small>당일 신규 팔로워는 대상 제외</small></span>
-          <span class="switch"><input type="checkbox" id="toggleFollow"><span class="track" onclick="document.getElementById('toggleFollow').click()"><span class="thumb"></span></span></span>
-        </div>
       </div>
 
       <div class="field">
@@ -410,7 +402,7 @@ body{
 
       <div class="sim-box">
         <h3>실시간 연동 (선택)</h3>
-        <input type="text" id="wsUrl" value="ws://localhost:8081" placeholder="ws://localhost:8081">
+        <input type="text" id="wsUrl" value="wss://natureseverchzzk.onrender.com" placeholder="wss://natureseverchzzk.onrender.com">
         <div class="btn-row">
           <button id="wsConnectBtn" class="btn btn-ghost">연결</button>
           <button id="wsDisconnectBtn" class="btn btn-ghost" disabled>연결 해제</button>
@@ -424,7 +416,6 @@ body{
         <div class="sim-checks">
           <label><input type="checkbox" id="simSub"> 구독자</label>
           <label><input type="checkbox" id="simSponsor"> 후원자</label>
-          <label><input type="checkbox" id="simFollow"> 오늘 팔로우</label>
         </div>
         <input type="text" id="simMsg" placeholder="채팅 메시지 (당첨자 확인 시 사용)">
         <button id="simSendBtn" class="btn btn-ghost">채팅 전송</button>
@@ -463,10 +454,10 @@ body{
   const state = {
     recruiting:false,
     ttsOn:true,
-    toggles:{subOnly:false, excludeDup:true, excludeFollow:false},
-    recruitList:[],      // {id,name,sub,sponsor,followedToday}
+    toggles:{subOnly:false, excludeDup:true},
+    recruitList:[],      // {id,name,sub,sponsor}
     winnerHistory:new Set(), // names ever won (for dup-exclusion)
-    queue:[],            // current draw round: [{id,name,sub,sponsor,followedToday,chatMsg,confirmed}]
+    queue:[],            // current draw round: [{id,name,sub,sponsor,chatMsg,confirmed}]
     queueIndex:-1,
     lastWinner:null,
     searchTerm:"",
@@ -481,7 +472,6 @@ body{
     ttsToggle: document.getElementById('ttsToggle'),
     toggleSub: document.getElementById('toggleSub'),
     toggleDup: document.getElementById('toggleDup'),
-    toggleFollow: document.getElementById('toggleFollow'),
     maxWinners: document.getElementById('maxWinners'),
     startBtn: document.getElementById('startBtn'),
     endBtn: document.getElementById('endBtn'),
@@ -489,7 +479,6 @@ body{
     simName: document.getElementById('simName'),
     simSub: document.getElementById('simSub'),
     simSponsor: document.getElementById('simSponsor'),
-    simFollow: document.getElementById('simFollow'),
     simMsg: document.getElementById('simMsg'),
     simSendBtn: document.getElementById('simSendBtn'),
     wsUrl: document.getElementById('wsUrl'),
@@ -508,7 +497,6 @@ body{
   function isExcluded(person){
     if(state.toggles.subOnly && !person.sub) return true;
     if(state.toggles.excludeDup && state.winnerHistory.has(person.name)) return true;
-    if(state.toggles.excludeFollow && person.followedToday) return true;
     return false;
   }
 
@@ -555,12 +543,10 @@ body{
       if(excluded){
         if(state.toggles.subOnly && !p.sub) tagReason = '비구독자';
         else if(state.toggles.excludeDup && state.winnerHistory.has(p.name)) tagReason = '중복 당첨';
-        else if(state.toggles.excludeFollow && p.followedToday) tagReason = '당일 팔로우';
       }
       const badges = [
         p.sponsor ? '<span class="badge badge-sponsor">후원</span>' : '',
-        p.sub ? '<span class="badge badge-sub">구독</span>' : '',
-        p.followedToday ? '<span class="badge badge-follow">오늘팔로우</span>' : ''
+        p.sub ? '<span class="badge badge-sub">구독</span>' : ''
       ].join('');
       return '<li class="recruit-item' + (excluded ? ' excluded' : '') + '" data-id="' + p.id + '" tabindex="0" role="button" aria-label="' + escapeHtml(p.name) + ' 미리보기">' +
         '<span class="name-block"><span class="name">' + escapeHtml(p.name) + '</span>' + badges + '</span>' +
@@ -583,7 +569,7 @@ body{
 
       const sponsorBlock = current.sponsor
         ? '<span class="sponsor-mark">✓ 후원 인증</span>'
-        : '<span class="free-tag">(무료눈깔)</span>';
+        : '';
 
       const chatBlock = current.chatMsg
         ? '<div class="chat-line"><span class="who">' + escapeHtml(current.name) + '</span>' + escapeHtml(current.chatMsg) + ' <span class="check-mark">✔</span></div>'
@@ -607,7 +593,7 @@ body{
       if(p){
         const sponsorBlock = p.sponsor
           ? '<span class="sponsor-mark">✓ 후원 인증</span>'
-          : '<span class="free-tag">(무료눈깔)</span>';
+          : '';
         el.winnerZone.innerHTML =
           '<div class="winner-card">' +
             '<div class="winner-name-row"><span class="winner-name">' + escapeHtml(p.name) + '</span>' + sponsorBlock + '<span class="preview-tag">미리보기</span></div>' +
@@ -630,7 +616,7 @@ body{
     const w = state.lastWinner;
     const sponsorBlock = w.sponsor
       ? '<span class="sponsor-mark">✓ 후원 인증</span>'
-      : '<span class="free-tag">(무료눈깔)</span>';
+      : '';
     el.lastWinnerContent.innerHTML =
       '<div class="last-winner-row"><span class="winner-name" style="font-size:15px;">' + escapeHtml(w.name) + '</span>' + sponsorBlock + '</div>';
   }
@@ -683,7 +669,7 @@ body{
     }
     const picked = shuffled.slice(0, m);
 
-    state.queue = picked.map(p => ({ id:p.id, name:p.name, sub:p.sub, sponsor:p.sponsor, followedToday:p.followedToday, chatMsg:null }));
+    state.queue = picked.map(p => ({ id:p.id, name:p.name, sub:p.sub, sponsor:p.sponsor, chatMsg:null }));
     state.queueIndex = 0;
     state.previewId = null;
     renderAll();
@@ -715,7 +701,6 @@ body{
     if(!name) { el.simName.focus(); return; }
     const sub = el.simSub.checked;
     const sponsor = el.simSponsor.checked;
-    const followedToday = el.simFollow.checked;
     const msg = el.simMsg.value.trim();
 
     // if this viewer is the currently active winner awaiting confirmation, treat message as their winning chat
@@ -737,9 +722,8 @@ body{
       // update flags live (in case sim toggled after first chat)
       existing.sub = existing.sub || sub;
       existing.sponsor = existing.sponsor || sponsor;
-      existing.followedToday = existing.followedToday || followedToday;
     } else {
-      state.recruitList.push({ id: uid++, name, sub, sponsor, followedToday });
+      state.recruitList.push({ id: uid++, name, sub, sponsor });
     }
     renderAll();
     el.simName.value = '';
@@ -797,18 +781,23 @@ body{
     if(data.type === 'subscribe'){
       if(data.userIdHash) subscriberIds.add(data.userIdHash);
       const p = findRecruit(data.userIdHash, data.nickname);
-      if(p){ p.sub = true; renderAll(); }
+      if(p){
+        p.sub = true;
+      } else if(state.recruiting && data.nickname){
+        state.recruitList.push({ id: uid++, name: data.nickname, userIdHash: data.userIdHash || null, sub: true, sponsor: sponsorIds.has(data.userIdHash) });
+      }
+      renderAll();
       return;
     }
     if(data.type === 'donation'){
       if(data.userIdHash) sponsorIds.add(data.userIdHash);
       const p = findRecruit(data.userIdHash, data.nickname);
-      if(p){ p.sponsor = true; renderAll(); }
-      return;
-    }
-    if(data.type === 'follow'){
-      const p = findRecruit(data.userIdHash, data.nickname);
-      if(p){ p.followedToday = !!data.followedToday; renderAll(); }
+      if(p){
+        p.sponsor = true;
+      } else if(state.recruiting && data.nickname){
+        state.recruitList.push({ id: uid++, name: data.nickname, userIdHash: data.userIdHash || null, sub: subscriberIds.has(data.userIdHash), sponsor: true });
+      }
+      renderAll();
       return;
     }
     if(data.type === 'chat'){
@@ -831,15 +820,14 @@ body{
       if(existing){
         existing.userIdHash = existing.userIdHash || data.userIdHash;
         if(data.sponsor || sponsorIds.has(data.userIdHash)) existing.sponsor = true;
-        if(subscriberIds.has(data.userIdHash)) existing.sub = true;
+        if(data.sub || subscriberIds.has(data.userIdHash)) existing.sub = true;
       } else {
         state.recruitList.push({
           id: uid++,
           name,
           userIdHash: data.userIdHash || null,
-          sub: subscriberIds.has(data.userIdHash),
-          sponsor: !!data.sponsor || sponsorIds.has(data.userIdHash),
-          followedToday: false
+          sub: !!data.sub || subscriberIds.has(data.userIdHash),
+          sponsor: !!data.sponsor || sponsorIds.has(data.userIdHash)
         });
       }
       renderAll();
@@ -858,7 +846,6 @@ body{
 
   el.toggleSub.addEventListener('change', () => { state.toggles.subOnly = el.toggleSub.checked; renderAll(); });
   el.toggleDup.addEventListener('change', () => { state.toggles.excludeDup = el.toggleDup.checked; renderAll(); });
-  el.toggleFollow.addEventListener('change', () => { state.toggles.excludeFollow = el.toggleFollow.checked; renderAll(); });
 
   el.searchBox.addEventListener('input', () => { state.searchTerm = el.searchBox.value; renderList(); });
 
