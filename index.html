@@ -619,10 +619,6 @@ body{
           <span class="switch"><input type="checkbox" id="toggleSub"><span class="track" onclick="document.getElementById('toggleSub').click()"><span class="thumb"></span></span></span>
         </div>
         <div class="switch-item">
-          <span class="switch-label">후원자만 추첨<small>후원 안 한 사람은 목록에는 뜨지만 대상 제외</small></span>
-          <span class="switch"><input type="checkbox" id="toggleSponsor"><span class="track" onclick="document.getElementById('toggleSponsor').click()"><span class="thumb"></span></span></span>
-        </div>
-        <div class="switch-item">
           <span class="switch-label">중복 당첨자 제외<small>이전 당첨 이력이 있으면 대상 제외</small></span>
           <span class="switch"><input type="checkbox" id="toggleDup" checked><span class="track" onclick="document.getElementById('toggleDup').click()"><span class="thumb"></span></span></span>
         </div>
@@ -743,7 +739,7 @@ body{
     recruiting:false,
     ttsOn:true,
     ttsVoiceURI:null,
-    toggles:{subOnly:false, sponsorOnly:false, excludeDup:true},
+    toggles:{subOnly:false, excludeDup:true},
     recruitList:[],      // {id,name,sub,sponsor}
     winnerHistory:new Set(), // names ever won (for dup-exclusion)
     queue:[],            // current draw round: [{id,name}]
@@ -784,7 +780,6 @@ body{
     ttsToggle: document.getElementById('ttsToggle'),
     ttsVoice: document.getElementById('ttsVoice'),
     toggleSub: document.getElementById('toggleSub'),
-    toggleSponsor: document.getElementById('toggleSponsor'),
     toggleDup: document.getElementById('toggleDup'),
     maxWinners: document.getElementById('maxWinners'),
     startBtn: document.getElementById('startBtn'),
@@ -827,7 +822,6 @@ body{
   // ---------------- helpers ----------------
   function isExcluded(person){
     if(state.toggles.subOnly && !person.sub) return true;
-    if(state.toggles.sponsorOnly && !person.sponsor) return true;
     if(state.toggles.excludeDup && state.winnerHistory.has(person.name)) return true;
     return false;
   }
@@ -911,7 +905,6 @@ body{
       let tagReason = '';
       if(excluded){
         if(state.toggles.subOnly && !p.sub) tagReason = '비구독자';
-        else if(state.toggles.sponsorOnly && !p.sponsor) tagReason = '후원 안 함';
         else if(state.toggles.excludeDup && state.winnerHistory.has(p.name)) tagReason = '중복 당첨';
       }
       const badges = [
@@ -939,7 +932,13 @@ body{
     return '<div class="awaiting"><span class="dot"></span>' + emptyLabel + '</div>';
   }
 
+  let lastLogPersonId = null;
+  const lastChatLogLength = new Map();
+
   function renderWinnerZone(){
+    const prevLogEl = el.winnerZone.querySelector('.chat-log');
+    const prevScrollTop = prevLogEl ? prevLogEl.scrollTop : null;
+
     if(state.drawing){
       const first = state.spinNames && state.spinNames.length > 0 ? state.spinNames[0] : '???';
       el.winnerZone.innerHTML =
@@ -999,9 +998,26 @@ body{
       el.winnerZone.innerHTML = '<p class="empty-state">추첨을 진행하면 당첨자가 여기 표시돼요.</p>';
     }
 
-    // 채팅 로그가 길어지면 매번 다시 그려지면서 스크롤이 위로 리셋되므로, 항상 맨 아래로 붙여줌
+    // 채팅 로그가 길어지면 다시 그려질 때마다 스크롤이 초기화되므로,
+    // 새 메시지가 오거나 보고 있는 대상이 바뀔 때만 맨 아래로 붙이고,
+    // 그 외에는(다른 이유로 다시 그려질 때) 직접 스크롤해둔 위치를 유지함
     const logEl = el.winnerZone.querySelector('.chat-log');
-    if(logEl) logEl.scrollTop = logEl.scrollHeight;
+    if(logEl){
+      const activeId = (state.queue.length > 0 && state.queueIndex >= 0)
+        ? state.queue[state.queueIndex].id
+        : (state.previewId !== null ? state.previewId : null);
+      const person = activeId !== null ? getPerson(activeId) : null;
+      const len = person && person.chatLog ? person.chatLog.length : 0;
+      const prevLen = lastChatLogLength.get(activeId) || 0;
+
+      if(activeId !== lastLogPersonId || len > prevLen){
+        logEl.scrollTop = logEl.scrollHeight;
+      } else if(prevScrollTop !== null){
+        logEl.scrollTop = prevScrollTop;
+      }
+      lastChatLogLength.set(activeId, len);
+      lastLogPersonId = activeId;
+    }
   }
 
   function renderLastWinner(){
@@ -1546,7 +1562,6 @@ body{
   el.simName.addEventListener('keydown', e => { if(e.key === 'Enter') simulateChat(); });
 
   el.toggleSub.addEventListener('change', () => { state.toggles.subOnly = el.toggleSub.checked; renderAll(); });
-  el.toggleSponsor.addEventListener('change', () => { state.toggles.sponsorOnly = el.toggleSponsor.checked; renderAll(); });
   el.toggleDup.addEventListener('change', () => { state.toggles.excludeDup = el.toggleDup.checked; renderAll(); });
 
   el.searchBox.addEventListener('input', () => { state.searchTerm = el.searchBox.value; renderList(); });
