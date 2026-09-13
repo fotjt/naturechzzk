@@ -508,6 +508,69 @@ body{
 .legend-name{flex:1;min-width:0;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .legend-percent{font-family:var(--font-mono);font-size:12.5px;color:var(--text-muted);}
 
+/* ---------- poll ---------- */
+.poll-view{max-width:760px;}
+.poll-panel{text-align:left;}
+.poll-hint{font-size:12.5px;color:var(--text-dim);margin:-6px 0 16px;line-height:1.6;}
+.poll-hint b{color:var(--accent);font-weight:600;}
+.poll-status{
+  margin-top:12px;
+  font-size:12.5px;
+  color:var(--text-muted);
+  background:var(--bg-alt);
+  border-radius:var(--radius-sm);
+  padding:8px 12px;
+}
+.poll-item-rows{display:flex;flex-direction:column;gap:8px;}
+.poll-item-row{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:var(--bg-alt);
+  border:1px solid var(--border-soft);
+  border-radius:var(--radius-sm);
+  padding:9px 11px;
+}
+.poll-command{
+  font-family:var(--font-mono);
+  font-size:11.5px;
+  color:var(--gold);
+  background:var(--gold-dim);
+  padding:3px 8px;
+  border-radius:5px;
+  flex:none;
+}
+.poll-name-input{
+  flex:1 1 100px;min-width:70px;
+  background:transparent;border:none;
+  color:var(--text);font-size:13px;font-family:var(--font-body);
+  padding:2px 0;
+}
+.poll-name-input:focus{outline:none;border-bottom:1px solid var(--accent);}
+.poll-bar-wrap{
+  flex:2 1 120px;height:10px;
+  background:var(--surface-2);
+  border-radius:999px;
+  overflow:hidden;
+}
+.poll-bar-fill{
+  height:100%;
+  border-radius:999px;
+  transition:width .3s ease;
+}
+.poll-percent{
+  font-family:var(--font-mono);
+  font-size:12px;
+  color:var(--text-muted);
+  flex:none;
+  min-width:82px;
+  text-align:right;
+}
+.poll-remove-btn{
+  background:transparent;border:none;color:var(--text-dim);
+  cursor:pointer;font-size:14px;padding:2px 4px;line-height:1;
+  border-radius:4px;flex:none;
+}
+.poll-remove-btn:hover{color:var(--danger);background:var(--danger-dim);}
+
 ::-webkit-scrollbar{width:8px;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
@@ -534,6 +597,7 @@ body{
     </div>
     <div class="tab-switch" role="tablist">
       <button class="tab-btn" id="tabRoulette" role="tab" aria-selected="false">룰렛</button>
+      <button class="tab-btn" id="tabPoll" role="tab" aria-selected="false">투표</button>
       <button class="tab-btn active" id="tabDraw" role="tab" aria-selected="true">시청자 추첨</button>
     </div>
     <div class="topbar-right">
@@ -643,6 +707,27 @@ body{
       <div id="legendList" class="legend-list"></div>
     </section>
   </div>
+
+  <div class="poll-view" id="viewPoll" hidden>
+    <section class="panel poll-panel">
+      <h2>시청자 참여투표</h2>
+      <p class="poll-hint">시청자가 채팅에 <b>!투표1</b>, <b>!투표2</b> 처럼 번호를 치면 그 항목에 투표돼요. 같은 사람이 다시 치면 마지막 표로 바뀌어요.</p>
+
+      <div class="btn-row">
+        <button id="pollStartBtn" class="btn btn-primary">투표 시작</button>
+        <button id="pollEndBtn" class="btn btn-secondary" disabled>투표 종료</button>
+      </div>
+      <div class="poll-status" id="pollStatus">대기 중 — 시작을 누르면 채팅으로 투표를 받을 수 있어요.</div>
+
+      <div class="roulette-items" style="margin-top:18px;">
+        <div class="roulette-items-header">
+          <h3>투표 항목</h3>
+          <button id="addPollItemBtn" class="btn btn-ghost add-item-btn">+ 항목 추가</button>
+        </div>
+        <div id="pollItemRows" class="poll-item-rows"></div>
+      </div>
+    </section>
+  </div>
 </div>
 
 <script>
@@ -676,6 +761,17 @@ body{
     spinning:false
   };
   let rouletteUid = 3;
+
+  // ---------------- 투표 상태 ----------------
+  const poll = {
+    items:[
+      { id:1, name:'옵션 1' },
+      { id:2, name:'옵션 2' }
+    ],
+    active:false,
+    votes:new Map() // voterKey -> itemId
+  };
+  let pollUid = 3;
 
   // ---------------- elements ----------------
   const el = {
@@ -713,7 +809,14 @@ body{
     rouletteResult: document.getElementById('rouletteResult'),
     itemRows: document.getElementById('itemRows'),
     addItemBtn: document.getElementById('addItemBtn'),
-    legendList: document.getElementById('legendList')
+    legendList: document.getElementById('legendList'),
+    tabPoll: document.getElementById('tabPoll'),
+    viewPoll: document.getElementById('viewPoll'),
+    pollStartBtn: document.getElementById('pollStartBtn'),
+    pollEndBtn: document.getElementById('pollEndBtn'),
+    pollStatus: document.getElementById('pollStatus'),
+    addPollItemBtn: document.getElementById('addPollItemBtn'),
+    pollItemRows: document.getElementById('pollItemRows')
   };
 
   // ---------------- helpers ----------------
@@ -1068,6 +1171,8 @@ body{
     const sponsor = el.simSponsor.checked;
     const msg = el.simMsg.value.trim();
 
+    if(msg) processPollVote(name, msg); // 시뮬레이터는 userIdHash가 없어서 이름을 투표자 키로 사용
+
     let person = state.recruitList.find(p => p.name === name);
     if(person){
       // update flags live (in case sim toggled after first chat)
@@ -1165,6 +1270,8 @@ body{
       const name = data.nickname;
       if(!name) return;
 
+      if(data.message) processPollVote(data.userIdHash || ('name:' + name), data.message);
+
       let person = findRecruit(data.userIdHash, name);
       if(person){
         person.userIdHash = person.userIdHash || data.userIdHash;
@@ -1195,13 +1302,15 @@ body{
 
   // ---------------- 룰렛 ----------------
   function setView(view){
-    const isDraw = view === 'draw';
-    el.viewDraw.hidden = !isDraw;
-    el.viewRoulette.hidden = isDraw;
-    el.tabDraw.classList.toggle('active', isDraw);
-    el.tabRoulette.classList.toggle('active', !isDraw);
-    el.tabDraw.setAttribute('aria-selected', String(isDraw));
-    el.tabRoulette.setAttribute('aria-selected', String(!isDraw));
+    el.viewDraw.hidden = view !== 'draw';
+    el.viewRoulette.hidden = view !== 'roulette';
+    el.viewPoll.hidden = view !== 'poll';
+    el.tabDraw.classList.toggle('active', view === 'draw');
+    el.tabRoulette.classList.toggle('active', view === 'roulette');
+    el.tabPoll.classList.toggle('active', view === 'poll');
+    el.tabDraw.setAttribute('aria-selected', String(view === 'draw'));
+    el.tabRoulette.setAttribute('aria-selected', String(view === 'roulette'));
+    el.tabPoll.setAttribute('aria-selected', String(view === 'poll'));
   }
 
   function rouletteColor(i){
@@ -1355,6 +1464,66 @@ body{
     }, 4300);
   }
 
+  // ---------------- 투표 ----------------
+  function pollVoteCounts(){
+    const counts = new Map();
+    poll.items.forEach(it => counts.set(it.id, 0));
+    poll.votes.forEach(itemId => {
+      if(counts.has(itemId)) counts.set(itemId, counts.get(itemId) + 1);
+    });
+    return counts;
+  }
+
+  function renderPoll(){
+    if(!el.pollItemRows) return;
+    const counts = pollVoteCounts();
+    const total = poll.votes.size;
+
+    el.pollItemRows.innerHTML = poll.items.map((it, i) => {
+      const count = counts.get(it.id) || 0;
+      const percent = total > 0 ? (count / total * 100) : 0;
+      const color = rouletteColor(i);
+      return '<div class="poll-item-row">' +
+        '<span class="poll-command">!투표' + (i + 1) + '</span>' +
+        '<input type="text" class="poll-name-input" data-id="' + it.id + '" value="' + escapeHtml(it.name) + '" placeholder="항목 이름">' +
+        '<div class="poll-bar-wrap"><div class="poll-bar-fill" style="width:' + percent.toFixed(1) + '%;background:' + color + '"></div></div>' +
+        '<span class="poll-percent">' + percent.toFixed(1) + '% (' + count + '표)</span>' +
+        '<button class="poll-remove-btn" data-id="' + it.id + '" title="삭제">✕</button>' +
+      '</div>';
+    }).join('');
+
+    el.pollStatus.textContent = poll.active
+      ? ('투표 진행 중 — 총 ' + total + '표')
+      : (total > 0 ? ('투표 종료됨 — 총 ' + total + '표') : '대기 중 — 시작을 누르면 채팅으로 투표를 받을 수 있어요.');
+  }
+
+  function pollStart(){
+    poll.active = true;
+    poll.votes.clear();
+    el.pollStartBtn.disabled = true;
+    el.pollEndBtn.disabled = false;
+    renderPoll();
+  }
+
+  function pollEnd(){
+    poll.active = false;
+    el.pollStartBtn.disabled = false;
+    el.pollEndBtn.disabled = true;
+    renderPoll();
+  }
+
+  // 채팅 메시지가 "!투표N" 형태면 투표로 집계 (진행 중일 때만, 탭과 무관하게 항상 동작)
+  function processPollVote(voterKey, message){
+    if(!poll.active || !message) return;
+    const m = message.trim().match(/^!\s*투표\s*(\d+)$/);
+    if(!m) return;
+    const idx = parseInt(m[1], 10);
+    const item = poll.items[idx - 1];
+    if(!item) return;
+    poll.votes.set(voterKey, item.id);
+    renderPoll();
+  }
+
   // ---------------- events ----------------
   el.startBtn.addEventListener('click', startRecruit);
   el.endBtn.addEventListener('click', endRecruit);
@@ -1439,11 +1608,43 @@ body{
     renderRoulette();
   });
 
+  // ---------------- 투표 이벤트 ----------------
+  el.tabPoll.addEventListener('click', () => setView('poll'));
+
+  el.pollStartBtn.addEventListener('click', pollStart);
+  el.pollEndBtn.addEventListener('click', pollEnd);
+
+  el.addPollItemBtn.addEventListener('click', () => {
+    poll.items.push({ id: pollUid++, name: '옵션 ' + (poll.items.length + 1) });
+    renderPoll();
+  });
+
+  el.pollItemRows.addEventListener('input', (e) => {
+    if(!e.target.classList.contains('poll-name-input')) return;
+    const id = parseInt(e.target.dataset.id, 10);
+    const item = poll.items.find(x => x.id === id);
+    if(!item) return;
+    item.name = e.target.value;
+    renderPoll();
+  });
+
+  el.pollItemRows.addEventListener('click', (e) => {
+    const btn = e.target.closest('.poll-remove-btn');
+    if(!btn) return;
+    if(poll.items.length <= 1) return;
+    const id = parseInt(btn.dataset.id, 10);
+    poll.items = poll.items.filter(x => x.id !== id);
+    // 항목이 삭제되면 !투표 번호 순서가 바뀌므로, 기존 투표는 초기화해서 혼동을 막음
+    poll.votes.clear();
+    renderPoll();
+  });
+
   // init
   state.toggles.excludeDup = el.toggleDup.checked;
   renderAll();
   setView('draw');
   renderRoulette();
+  renderPoll();
 })();
 </script>
 </body>
